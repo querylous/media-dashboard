@@ -53,13 +53,14 @@ def merge_shows(tmdb_shows, trakt_shows, limit=50):
 def get_movies():
     """Get top 50 trending/new movies."""
     try:
-        # Get from both sources
+        # Get 3 pages from TMDB (60 items) to ensure we have enough with posters
         tmdb_movies = tmdb.get_trending_movies(page=1)
-        tmdb_movies_p2 = tmdb.get_trending_movies(page=2)
+        tmdb_movies += tmdb.get_trending_movies(page=2)
+        tmdb_movies += tmdb.get_trending_movies(page=3)
         trakt_movies = trakt.get_trending_movies(limit=50)
 
-        # Merge and deduplicate
-        merged = merge_movies(tmdb_movies + tmdb_movies_p2, trakt_movies, limit=50)
+        # Merge and deduplicate (TMDB first for posters)
+        merged = merge_movies(tmdb_movies, trakt_movies, limit=50)
 
         return jsonify({"success": True, "data": merged})
     except Exception as e:
@@ -70,13 +71,14 @@ def get_movies():
 def get_shows():
     """Get top 50 trending/new TV shows."""
     try:
-        # Get from both sources
+        # Get 3 pages from TMDB (60 items) to ensure we have enough with posters
         tmdb_shows = tmdb.get_trending_shows(page=1)
-        tmdb_shows_p2 = tmdb.get_trending_shows(page=2)
+        tmdb_shows += tmdb.get_trending_shows(page=2)
+        tmdb_shows += tmdb.get_trending_shows(page=3)
         trakt_shows = trakt.get_trending_shows(limit=50)
 
-        # Merge and deduplicate
-        merged = merge_shows(tmdb_shows + tmdb_shows_p2, trakt_shows, limit=50)
+        # Merge and deduplicate (TMDB first for posters)
+        merged = merge_shows(tmdb_shows, trakt_shows, limit=50)
 
         return jsonify({"success": True, "data": merged})
     except Exception as e:
