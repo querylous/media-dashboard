@@ -39,6 +39,9 @@ def load_config():
                 "api_key": os.environ.get("SONARR_API_KEY", ""),
                 "root_folder": os.environ.get("SONARR_ROOT_FOLDER", "/tv"),
             },
+            "plex": {
+                "url": os.environ.get("PLEX_URL", "https://app.plex.tv/desktop"),
+            },
         }
 
     return _config
@@ -62,3 +65,8 @@ def get_radarr_config():
 def get_sonarr_config():
     config = load_config()
     return config.get("sonarr", {})
+
+
+def get_plex_config():
+    config = load_config()
+    return config.get("plex", {})

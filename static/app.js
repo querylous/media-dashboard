@@ -6,6 +6,7 @@ let radarrProfiles = [];
 let sonarrProfiles = [];
 let currentItem = null;
 let isSearchMode = false;
+let plexUrl = 'https://app.plex.tv/desktop';
 
 // DOM Elements
 const moviesTab = document.getElementById('movies-tab');
@@ -26,12 +27,13 @@ const toastContainer = document.getElementById('toast-container');
 
 // Initialize
 async function init() {
-    // Load libraries and profiles
+    // Load libraries, profiles, and plex config
     await Promise.all([
         loadRadarrLibrary(),
         loadSonarrLibrary(),
         loadRadarrProfiles(),
         loadSonarrProfiles(),
+        loadPlexConfig(),
     ]);
 
     // Load initial content
@@ -139,21 +141,7 @@ function renderContent(items) {
         return;
     }
 
-    // Filter out items already in library
-    const filteredItems = items.filter(item => {
-        if (currentTab === 'movies') {
-            return !radarrLibrary.has(item.tmdb_id);
-        } else {
-            return !sonarrLibrary.has(item.tvdb_id);
-        }
-    });
-
-    if (filteredItems.length === 0) {
-        contentGrid.innerHTML = '<p class="col-span-full text-center text-gray-400 py-12">All items are already in your library</p>';
-        return;
-    }
-
-    filteredItems.forEach(item => {
+    items.forEach(item => {
         const card = createCard(item);
         contentGrid.appendChild(card);
     });
@@ -170,6 +158,15 @@ function createCard(item) {
 
     const posterUrl = item.poster || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="300" viewBox="0 0 200 300"><rect fill="%23374151" width="200" height="300"/><text fill="%239CA3AF" font-family="sans-serif" font-size="14" x="50%" y="50%" text-anchor="middle">No Poster</text></svg>';
 
+    const plexSearchUrl = `${plexUrl}#!/search?query=${encodeURIComponent(item.title)}`;
+
+    let actionButton;
+    if (isInLibrary) {
+        actionButton = `<a href="${plexSearchUrl}" target="_blank" class="mt-2 w-full py-1 bg-orange-500 hover:bg-orange-600 rounded text-sm block text-center">Watch in Plex</a>`;
+    } else {
+        actionButton = `<button class="add-btn mt-2 w-full py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm" data-item='${JSON.stringify(item).replace(/'/g, "&apos;")}'>Add</button>`;
+    }
+
     div.innerHTML = `
         <div class="relative">
             <img src="${posterUrl}" alt="${item.title}" class="w-full aspect-[2/3] object-cover">
@@ -179,7 +176,7 @@ function createCard(item) {
         <div class="p-3">
             <h3 class="font-medium text-sm truncate" title="${item.title}">${item.title}</h3>
             <p class="text-gray-400 text-xs">${item.year || 'N/A'}</p>
-            ${!isInLibrary ? `<button class="add-btn mt-2 w-full py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm" data-item='${JSON.stringify(item).replace(/'/g, "&apos;")}'>Add</button>` : ''}
+            ${actionButton}
         </div>
     `;
 
@@ -305,6 +302,18 @@ async function loadSonarrProfiles() {
         }
     } catch (e) {
         console.error('Failed to load Sonarr profiles:', e);
+    }
+}
+
+async function loadPlexConfig() {
+    try {
+        const response = await fetch('/api/plex/config');
+        const data = await response.json();
+        if (data.success) {
+            plexUrl = data.url;
+        }
+    } catch (e) {
+        console.error('Failed to load Plex config:', e);
     }
 }
 

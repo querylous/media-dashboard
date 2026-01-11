@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 from app.services import tmdb, trakt, radarr, sonarr
+from app.config import get_plex_config
 
 api = Blueprint("api", __name__, url_prefix="/api")
 
@@ -203,4 +204,14 @@ def get_status():
         "success": True,
         "radarr": radarr_status,
         "sonarr": sonarr_status,
+    })
+
+
+@api.route("/plex/config")
+def get_plex_url():
+    """Get Plex URL for watch links."""
+    config = get_plex_config()
+    return jsonify({
+        "success": True,
+        "url": config.get("url", "https://app.plex.tv/desktop"),
     })

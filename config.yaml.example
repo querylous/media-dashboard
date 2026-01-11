@@ -13,3 +13,6 @@ sonarr:
   url: "http://localhost:8989"  # Or http://sonarr:8989 if using Docker network
   api_key: "your-sonarr-api-key"
   root_folder: "/tv"
+
+plex:
+  url: "https://app.plex.tv/desktop"  # Or http://your-plex-server:32400/web/index.html
