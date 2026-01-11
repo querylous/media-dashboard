@@ -1,0 +1,15 @@
+tmdb:
+  api_key: "your-tmdb-api-key"  # Get from https://www.themoviedb.org/settings/api
+
+trakt:
+  client_id: "your-trakt-client-id"  # Get from https://trakt.tv/oauth/applications
+
+radarr:
+  url: "http://localhost:7878"  # Or http://radarr:7878 if using Docker network
+  api_key: "your-radarr-api-key"
+  root_folder: "/movies"
+
+sonarr:
+  url: "http://localhost:8989"  # Or http://sonarr:8989 if using Docker network
+  api_key: "your-sonarr-api-key"
+  root_folder: "/tv"

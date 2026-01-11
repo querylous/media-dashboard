@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  media-dashboard:
+    build: .
+    container_name: media-dashboard
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./config.yaml:/config/config.yaml:ro
+    environment:
+      - CONFIG_PATH=/config/config.yaml
+    restart: unless-stopped
