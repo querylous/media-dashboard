@@ -139,7 +139,21 @@ function renderContent(items) {
         return;
     }
 
-    items.forEach(item => {
+    // Filter out items already in library
+    const filteredItems = items.filter(item => {
+        if (currentTab === 'movies') {
+            return !radarrLibrary.has(item.tmdb_id);
+        } else {
+            return !sonarrLibrary.has(item.tvdb_id);
+        }
+    });
+
+    if (filteredItems.length === 0) {
+        contentGrid.innerHTML = '<p class="col-span-full text-center text-gray-400 py-12">All items are already in your library</p>';
+        return;
+    }
+
+    filteredItems.forEach(item => {
         const card = createCard(item);
         contentGrid.appendChild(card);
     });
