@@ -123,10 +123,11 @@ def get_radarr_library():
 
 @api.route("/sonarr/library")
 def get_sonarr_library():
-    """Get TVDB IDs of shows in Sonarr."""
+    """Get TVDB and TMDB IDs of shows in Sonarr."""
     try:
         tvdb_ids = list(sonarr.get_library_tvdb_ids())
-        return jsonify({"success": True, "data": tvdb_ids})
+        tmdb_ids = list(sonarr.get_library_tmdb_ids())
+        return jsonify({"success": True, "data": {"tvdb": tvdb_ids, "tmdb": tmdb_ids}})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 

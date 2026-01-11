@@ -42,6 +42,12 @@ def get_library_tvdb_ids():
     return {s.get("tvdbId") for s in series if s.get("tvdbId")}
 
 
+def get_library_tmdb_ids():
+    """Get set of TMDB IDs for series in library."""
+    series = _make_request("/series")
+    return {s.get("tmdbId") for s in series if s.get("tmdbId")}
+
+
 def get_quality_profiles():
     """Get available quality profiles."""
     profiles = _make_request("/qualityprofile")

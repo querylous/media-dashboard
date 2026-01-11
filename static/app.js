@@ -1,7 +1,8 @@
 // State
 let currentTab = 'movies';
 let radarrLibrary = new Set();
-let sonarrLibrary = new Set();
+let sonarrLibraryTvdb = new Set();
+let sonarrLibraryTmdb = new Set();
 let radarrProfiles = [];
 let sonarrProfiles = [];
 let currentItem = null;
@@ -154,7 +155,7 @@ function createCard(item) {
 
     const isInLibrary = currentTab === 'movies'
         ? radarrLibrary.has(item.tmdb_id)
-        : sonarrLibrary.has(item.tvdb_id);
+        : (sonarrLibraryTvdb.has(item.tvdb_id) || sonarrLibraryTmdb.has(item.tmdb_id));
 
     const posterUrl = item.poster || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="300" viewBox="0 0 200 300"><rect fill="%23374151" width="200" height="300"/><text fill="%239CA3AF" font-family="sans-serif" font-size="14" x="50%" y="50%" text-anchor="middle">No Poster</text></svg>';
 
@@ -237,7 +238,8 @@ async function confirmAdd() {
             if (currentTab === 'movies') {
                 radarrLibrary.add(currentItem.tmdb_id);
             } else {
-                sonarrLibrary.add(currentItem.tvdb_id);
+                if (currentItem.tvdb_id) sonarrLibraryTvdb.add(currentItem.tvdb_id);
+                if (currentItem.tmdb_id) sonarrLibraryTmdb.add(currentItem.tmdb_id);
             }
 
             // Refresh display
@@ -274,7 +276,8 @@ async function loadSonarrLibrary() {
         const response = await fetch('/api/sonarr/library');
         const data = await response.json();
         if (data.success) {
-            sonarrLibrary = new Set(data.data);
+            sonarrLibraryTvdb = new Set(data.data.tvdb);
+            sonarrLibraryTmdb = new Set(data.data.tmdb);
         }
     } catch (e) {
         console.error('Failed to load Sonarr library:', e);
