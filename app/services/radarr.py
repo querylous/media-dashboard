@@ -42,6 +42,42 @@ def get_library_tmdb_ids():
     return {movie.get("tmdbId") for movie in movies if movie.get("tmdbId")}
 
 
+def get_library_with_status():
+    """Get library with download status."""
+    movies = _make_request("/movie")
+    queue = _make_request("/queue")
+
+    # Get TMDB IDs of movies currently downloading
+    downloading = set()
+    for item in queue.get("records", []):
+        movie_id = item.get("movieId")
+        if movie_id:
+            # Find the tmdbId for this movie
+            for m in movies:
+                if m.get("id") == movie_id:
+                    downloading.add(m.get("tmdbId"))
+                    break
+
+    result = {
+        "downloaded": [],
+        "downloading": [],
+        "missing": []
+    }
+
+    for movie in movies:
+        tmdb_id = movie.get("tmdbId")
+        if not tmdb_id:
+            continue
+        if tmdb_id in downloading:
+            result["downloading"].append(tmdb_id)
+        elif movie.get("hasFile"):
+            result["downloaded"].append(tmdb_id)
+        else:
+            result["missing"].append(tmdb_id)
+
+    return result
+
+
 def get_quality_profiles():
     """Get available quality profiles."""
     profiles = _make_request("/qualityprofile")

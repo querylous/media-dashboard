@@ -115,21 +115,20 @@ def search_shows():
 
 @api.route("/radarr/library")
 def get_radarr_library():
-    """Get TMDB IDs of movies in Radarr."""
+    """Get TMDB IDs of movies in Radarr with status."""
     try:
-        tmdb_ids = list(radarr.get_library_tmdb_ids())
-        return jsonify({"success": True, "data": tmdb_ids})
+        status = radarr.get_library_with_status()
+        return jsonify({"success": True, "data": status})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
 
 @api.route("/sonarr/library")
 def get_sonarr_library():
-    """Get TVDB and TMDB IDs of shows in Sonarr."""
+    """Get TVDB and TMDB IDs of shows in Sonarr with status."""
     try:
-        tvdb_ids = list(sonarr.get_library_tvdb_ids())
-        tmdb_ids = list(sonarr.get_library_tmdb_ids())
-        return jsonify({"success": True, "data": {"tvdb": tvdb_ids, "tmdb": tmdb_ids}})
+        status = sonarr.get_library_with_status()
+        return jsonify({"success": True, "data": status})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 

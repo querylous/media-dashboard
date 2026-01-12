@@ -1,8 +1,11 @@
 // State
 let currentTab = 'movies';
-let radarrLibrary = new Set();
-let sonarrLibraryTvdb = new Set();
-let sonarrLibraryTmdb = new Set();
+let radarrDownloaded = new Set();
+let radarrDownloading = new Set();
+let sonarrDownloadedTvdb = new Set();
+let sonarrDownloadedTmdb = new Set();
+let sonarrDownloadingTvdb = new Set();
+let sonarrDownloadingTmdb = new Set();
 let radarrProfiles = [];
 let sonarrProfiles = [];
 let currentItem = null;
@@ -148,22 +151,36 @@ function renderContent(items) {
     });
 }
 
+// Get item status
+function getItemStatus(item) {
+    if (currentTab === 'movies') {
+        if (radarrDownloaded.has(item.tmdb_id)) return 'downloaded';
+        if (radarrDownloading.has(item.tmdb_id)) return 'downloading';
+    } else {
+        if (sonarrDownloadedTvdb.has(item.tvdb_id) || sonarrDownloadedTmdb.has(item.tmdb_id)) return 'downloaded';
+        if (sonarrDownloadingTvdb.has(item.tvdb_id) || sonarrDownloadingTmdb.has(item.tmdb_id)) return 'downloading';
+    }
+    return 'not_added';
+}
+
 // Create card element
 function createCard(item) {
     const div = document.createElement('div');
     div.className = 'poster-card bg-gray-800 rounded-lg overflow-hidden';
 
-    const isInLibrary = currentTab === 'movies'
-        ? radarrLibrary.has(item.tmdb_id)
-        : (sonarrLibraryTvdb.has(item.tvdb_id) || sonarrLibraryTmdb.has(item.tmdb_id));
-
+    const status = getItemStatus(item);
     const posterUrl = item.poster || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="300" viewBox="0 0 200 300"><rect fill="%23374151" width="200" height="300"/><text fill="%239CA3AF" font-family="sans-serif" font-size="14" x="50%" y="50%" text-anchor="middle">No Poster</text></svg>';
-
     const plexSearchUrl = `${plexUrl}#!/search?query=${encodeURIComponent(item.title)}`;
 
     let actionButton;
-    if (isInLibrary) {
+    let statusBadge = '';
+
+    if (status === 'downloaded') {
         actionButton = `<a href="${plexSearchUrl}" target="_blank" class="mt-2 w-full py-1 bg-orange-500 hover:bg-orange-600 rounded text-sm block text-center">Watch in Plex</a>`;
+        statusBadge = '<span class="absolute top-2 right-2 bg-green-600 text-xs px-2 py-1 rounded">Downloaded</span>';
+    } else if (status === 'downloading') {
+        actionButton = `<span class="mt-2 w-full py-1 bg-yellow-600 rounded text-sm block text-center">Downloading...</span>`;
+        statusBadge = '<span class="absolute top-2 right-2 bg-yellow-600 text-xs px-2 py-1 rounded">Downloading</span>';
     } else {
         actionButton = `<button class="add-btn mt-2 w-full py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm" data-item='${JSON.stringify(item).replace(/'/g, "&apos;")}'>Add</button>`;
     }
@@ -171,7 +188,7 @@ function createCard(item) {
     div.innerHTML = `
         <div class="relative">
             <img src="${posterUrl}" alt="${item.title}" class="w-full aspect-[2/3] object-cover">
-            ${isInLibrary ? '<span class="absolute top-2 right-2 bg-green-600 text-xs px-2 py-1 rounded">In Library</span>' : ''}
+            ${statusBadge}
             ${item.rating ? `<span class="absolute bottom-2 left-2 bg-black/70 text-xs px-2 py-1 rounded">${item.rating}</span>` : ''}
         </div>
         <div class="p-3">
@@ -234,12 +251,12 @@ async function confirmAdd() {
         if (data.success) {
             showToast(`Added "${currentItem.title}" successfully!`, 'success');
 
-            // Update local library state
+            // Update local library state (mark as downloading)
             if (currentTab === 'movies') {
-                radarrLibrary.add(currentItem.tmdb_id);
+                radarrDownloading.add(currentItem.tmdb_id);
             } else {
-                if (currentItem.tvdb_id) sonarrLibraryTvdb.add(currentItem.tvdb_id);
-                if (currentItem.tmdb_id) sonarrLibraryTmdb.add(currentItem.tmdb_id);
+                if (currentItem.tvdb_id) sonarrDownloadingTvdb.add(currentItem.tvdb_id);
+                if (currentItem.tmdb_id) sonarrDownloadingTmdb.add(currentItem.tmdb_id);
             }
 
             // Refresh display
@@ -264,7 +281,8 @@ async function loadRadarrLibrary() {
         const response = await fetch('/api/radarr/library');
         const data = await response.json();
         if (data.success) {
-            radarrLibrary = new Set(data.data);
+            radarrDownloaded = new Set(data.data.downloaded);
+            radarrDownloading = new Set(data.data.downloading);
         }
     } catch (e) {
         console.error('Failed to load Radarr library:', e);
@@ -276,8 +294,10 @@ async function loadSonarrLibrary() {
         const response = await fetch('/api/sonarr/library');
         const data = await response.json();
         if (data.success) {
-            sonarrLibraryTvdb = new Set(data.data.tvdb);
-            sonarrLibraryTmdb = new Set(data.data.tmdb);
+            sonarrDownloadedTvdb = new Set(data.data.downloaded.tvdb);
+            sonarrDownloadedTmdb = new Set(data.data.downloaded.tmdb);
+            sonarrDownloadingTvdb = new Set(data.data.downloading.tvdb);
+            sonarrDownloadingTmdb = new Set(data.data.downloading.tmdb);
         }
     } catch (e) {
         console.error('Failed to load Sonarr library:', e);

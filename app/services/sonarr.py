@@ -48,6 +48,51 @@ def get_library_tmdb_ids():
     return {s.get("tmdbId") for s in series if s.get("tmdbId")}
 
 
+def get_library_with_status():
+    """Get library with download status."""
+    series_list = _make_request("/series")
+    queue = _make_request("/queue")
+
+    # Get series IDs currently downloading
+    downloading_series_ids = set()
+    for item in queue.get("records", []):
+        series_id = item.get("seriesId")
+        if series_id:
+            downloading_series_ids.add(series_id)
+
+    result = {
+        "downloaded": {"tvdb": [], "tmdb": []},
+        "downloading": {"tvdb": [], "tmdb": []},
+        "missing": {"tvdb": [], "tmdb": []}
+    }
+
+    for series in series_list:
+        tvdb_id = series.get("tvdbId")
+        tmdb_id = series.get("tmdbId")
+        series_id = series.get("id")
+        stats = series.get("statistics", {})
+        episode_count = stats.get("episodeCount", 0)
+        episode_file_count = stats.get("episodeFileCount", 0)
+
+        if series_id in downloading_series_ids:
+            if tvdb_id:
+                result["downloading"]["tvdb"].append(tvdb_id)
+            if tmdb_id:
+                result["downloading"]["tmdb"].append(tmdb_id)
+        elif episode_file_count > 0:
+            if tvdb_id:
+                result["downloaded"]["tvdb"].append(tvdb_id)
+            if tmdb_id:
+                result["downloaded"]["tmdb"].append(tmdb_id)
+        else:
+            if tvdb_id:
+                result["missing"]["tvdb"].append(tvdb_id)
+            if tmdb_id:
+                result["missing"]["tmdb"].append(tmdb_id)
+
+    return result
+
+
 def get_quality_profiles():
     """Get available quality profiles."""
     profiles = _make_request("/qualityprofile")
