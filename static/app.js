@@ -1,11 +1,11 @@
 // State
 let currentTab = 'movies';
 let radarrDownloaded = new Set();
-let radarrDownloading = new Set();
+let radarrDownloading = {};  // {tmdb_id: progress}
 let sonarrDownloadedTvdb = new Set();
 let sonarrDownloadedTmdb = new Set();
-let sonarrDownloadingTvdb = new Set();
-let sonarrDownloadingTmdb = new Set();
+let sonarrDownloadingTvdb = {};  // {tvdb_id: progress}
+let sonarrDownloadingTmdb = {};  // {tmdb_id: progress}
 let radarrProfiles = [];
 let sonarrProfiles = [];
 let currentItem = null;
@@ -151,16 +151,17 @@ function renderContent(items) {
     });
 }
 
-// Get item status
+// Get item status and progress
 function getItemStatus(item) {
     if (currentTab === 'movies') {
-        if (radarrDownloaded.has(item.tmdb_id)) return 'downloaded';
-        if (radarrDownloading.has(item.tmdb_id)) return 'downloading';
+        if (radarrDownloaded.has(item.tmdb_id)) return { status: 'downloaded', progress: 100 };
+        if (item.tmdb_id in radarrDownloading) return { status: 'downloading', progress: radarrDownloading[item.tmdb_id] };
     } else {
-        if (sonarrDownloadedTvdb.has(item.tvdb_id) || sonarrDownloadedTmdb.has(item.tmdb_id)) return 'downloaded';
-        if (sonarrDownloadingTvdb.has(item.tvdb_id) || sonarrDownloadingTmdb.has(item.tmdb_id)) return 'downloading';
+        if (sonarrDownloadedTvdb.has(item.tvdb_id) || sonarrDownloadedTmdb.has(item.tmdb_id)) return { status: 'downloaded', progress: 100 };
+        if (item.tvdb_id in sonarrDownloadingTvdb) return { status: 'downloading', progress: sonarrDownloadingTvdb[item.tvdb_id] };
+        if (item.tmdb_id in sonarrDownloadingTmdb) return { status: 'downloading', progress: sonarrDownloadingTmdb[item.tmdb_id] };
     }
-    return 'not_added';
+    return { status: 'not_added', progress: 0 };
 }
 
 // Create card element
@@ -168,7 +169,7 @@ function createCard(item) {
     const div = document.createElement('div');
     div.className = 'poster-card bg-gray-800 rounded-lg overflow-hidden';
 
-    const status = getItemStatus(item);
+    const { status, progress } = getItemStatus(item);
     const posterUrl = item.poster || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="300" viewBox="0 0 200 300"><rect fill="%23374151" width="200" height="300"/><text fill="%239CA3AF" font-family="sans-serif" font-size="14" x="50%" y="50%" text-anchor="middle">No Poster</text></svg>';
     const plexSearchUrl = `${plexUrl}#!/search?query=${encodeURIComponent(item.title)}`;
     const tmdbUrl = currentTab === 'movies'
@@ -182,8 +183,17 @@ function createCard(item) {
         actionButton = `<a href="${plexSearchUrl}" target="_blank" class="mt-2 w-full py-1 bg-orange-500 hover:bg-orange-600 rounded text-sm block text-center">Watch in Plex</a>`;
         statusBadge = '<span class="absolute top-2 right-2 bg-green-600 text-xs px-2 py-1 rounded">Downloaded</span>';
     } else if (status === 'downloading') {
-        actionButton = `<span class="mt-2 w-full py-1 bg-yellow-600 rounded text-sm block text-center">Downloading...</span>`;
-        statusBadge = '<span class="absolute top-2 right-2 bg-yellow-600 text-xs px-2 py-1 rounded">Downloading</span>';
+        actionButton = `
+            <div class="mt-2">
+                <div class="flex justify-between text-xs text-gray-400 mb-1">
+                    <span>Downloading</span>
+                    <span>${progress}%</span>
+                </div>
+                <div class="w-full bg-gray-700 rounded-full h-2">
+                    <div class="bg-yellow-500 h-2 rounded-full transition-all" style="width: ${progress}%"></div>
+                </div>
+            </div>`;
+        statusBadge = `<span class="absolute top-2 right-2 bg-yellow-600 text-xs px-2 py-1 rounded">${progress}%</span>`;
     } else {
         actionButton = `<button class="add-btn mt-2 w-full py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm" data-item='${JSON.stringify(item).replace(/'/g, "&apos;")}'>Add</button>`;
     }
@@ -254,12 +264,12 @@ async function confirmAdd() {
         if (data.success) {
             showToast(`Added "${currentItem.title}" successfully!`, 'success');
 
-            // Update local library state (mark as downloading)
+            // Update local library state (mark as downloading with 0% progress)
             if (currentTab === 'movies') {
-                radarrDownloading.add(currentItem.tmdb_id);
+                radarrDownloading[currentItem.tmdb_id] = 0;
             } else {
-                if (currentItem.tvdb_id) sonarrDownloadingTvdb.add(currentItem.tvdb_id);
-                if (currentItem.tmdb_id) sonarrDownloadingTmdb.add(currentItem.tmdb_id);
+                if (currentItem.tvdb_id) sonarrDownloadingTvdb[currentItem.tvdb_id] = 0;
+                if (currentItem.tmdb_id) sonarrDownloadingTmdb[currentItem.tmdb_id] = 0;
             }
 
             // Refresh display
@@ -285,7 +295,7 @@ async function loadRadarrLibrary() {
         const data = await response.json();
         if (data.success) {
             radarrDownloaded = new Set(data.data.downloaded);
-            radarrDownloading = new Set(data.data.downloading);
+            radarrDownloading = data.data.downloading;  // {tmdb_id: progress}
         }
     } catch (e) {
         console.error('Failed to load Radarr library:', e);
@@ -299,8 +309,8 @@ async function loadSonarrLibrary() {
         if (data.success) {
             sonarrDownloadedTvdb = new Set(data.data.downloaded.tvdb);
             sonarrDownloadedTmdb = new Set(data.data.downloaded.tmdb);
-            sonarrDownloadingTvdb = new Set(data.data.downloading.tvdb);
-            sonarrDownloadingTmdb = new Set(data.data.downloading.tmdb);
+            sonarrDownloadingTvdb = data.data.downloading.tvdb;  // {tvdb_id: progress}
+            sonarrDownloadingTmdb = data.data.downloading.tmdb;  // {tmdb_id: progress}
         }
     } catch (e) {
         console.error('Failed to load Sonarr library:', e);

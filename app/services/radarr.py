@@ -47,20 +47,27 @@ def get_library_with_status():
     movies = _make_request("/movie")
     queue = _make_request("/queue")
 
-    # Get TMDB IDs of movies currently downloading
-    downloading = set()
+    # Get TMDB IDs and progress of movies currently downloading
+    downloading = {}
     for item in queue.get("records", []):
         movie_id = item.get("movieId")
         if movie_id:
             # Find the tmdbId for this movie
             for m in movies:
                 if m.get("id") == movie_id:
-                    downloading.add(m.get("tmdbId"))
+                    tmdb_id = m.get("tmdbId")
+                    size = item.get("size", 0)
+                    sizeleft = item.get("sizeleft", 0)
+                    if size > 0:
+                        progress = round((1 - sizeleft / size) * 100)
+                    else:
+                        progress = 0
+                    downloading[tmdb_id] = progress
                     break
 
     result = {
         "downloaded": [],
-        "downloading": [],
+        "downloading": {},
         "missing": []
     }
 
@@ -69,7 +76,7 @@ def get_library_with_status():
         if not tmdb_id:
             continue
         if tmdb_id in downloading:
-            result["downloading"].append(tmdb_id)
+            result["downloading"][tmdb_id] = downloading[tmdb_id]
         elif movie.get("hasFile"):
             result["downloaded"].append(tmdb_id)
         else:

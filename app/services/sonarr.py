@@ -53,16 +53,24 @@ def get_library_with_status():
     series_list = _make_request("/series")
     queue = _make_request("/queue")
 
-    # Get series IDs currently downloading
-    downloading_series_ids = set()
+    # Get series IDs and progress currently downloading
+    downloading_progress = {}
     for item in queue.get("records", []):
         series_id = item.get("seriesId")
         if series_id:
-            downloading_series_ids.add(series_id)
+            size = item.get("size", 0)
+            sizeleft = item.get("sizeleft", 0)
+            if size > 0:
+                progress = round((1 - sizeleft / size) * 100)
+            else:
+                progress = 0
+            # Keep the highest progress if multiple episodes downloading
+            if series_id not in downloading_progress or progress > downloading_progress[series_id]:
+                downloading_progress[series_id] = progress
 
     result = {
         "downloaded": {"tvdb": [], "tmdb": []},
-        "downloading": {"tvdb": [], "tmdb": []},
+        "downloading": {"tvdb": {}, "tmdb": {}},
         "missing": {"tvdb": [], "tmdb": []}
     }
 
@@ -71,14 +79,14 @@ def get_library_with_status():
         tmdb_id = series.get("tmdbId")
         series_id = series.get("id")
         stats = series.get("statistics", {})
-        episode_count = stats.get("episodeCount", 0)
         episode_file_count = stats.get("episodeFileCount", 0)
 
-        if series_id in downloading_series_ids:
+        if series_id in downloading_progress:
+            progress = downloading_progress[series_id]
             if tvdb_id:
-                result["downloading"]["tvdb"].append(tvdb_id)
+                result["downloading"]["tvdb"][tvdb_id] = progress
             if tmdb_id:
-                result["downloading"]["tmdb"].append(tmdb_id)
+                result["downloading"]["tmdb"][tmdb_id] = progress
         elif episode_file_count > 0:
             if tvdb_id:
                 result["downloaded"]["tvdb"].append(tvdb_id)
