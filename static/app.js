@@ -254,11 +254,13 @@ function createCard(item) {
     }
 
     div.innerHTML = `
-        <a href="${tmdbUrl}" target="_blank" class="block relative cursor-pointer">
-            <img src="${posterUrl}" alt="${item.title}" class="w-full aspect-[2/3] object-cover">
+        <div class="relative">
+            <a href="${tmdbUrl}" target="_blank" class="block cursor-pointer">
+                <img src="${posterUrl}" alt="${item.title}" class="w-full aspect-[2/3] object-cover">
+            </a>
             ${statusBadge}
             ${item.rating ? `<span class="absolute bottom-2 left-2 bg-black/70 text-xs px-2 py-1 rounded">${item.rating}</span>` : ''}
-        </a>
+        </div>
         <div class="p-3">
             <h3 class="font-medium text-sm truncate" title="${item.title}">${item.title}</h3>
             <p class="text-gray-400 text-xs">${item.year || 'N/A'}</p>
