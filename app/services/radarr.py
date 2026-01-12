@@ -75,10 +75,10 @@ def get_library_with_status():
 
     for movie in movies:
         tmdb_id = movie.get("tmdbId")
-        radarr_id = movie.get("id")
+        title_slug = movie.get("titleSlug")
         if not tmdb_id:
             continue
-        radarr_url = f"{base_url}/movie/{radarr_id}"
+        radarr_url = f"{base_url}/movie/{title_slug}"
 
         if tmdb_id in downloading:
             result["downloading"][tmdb_id] = {
