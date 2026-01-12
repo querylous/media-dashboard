@@ -69,7 +69,7 @@ def get_library_with_status():
     result = {
         "downloaded": {},  # {tmdb_id: {radarr_url: "..."}}
         "downloading": {},  # {tmdb_id: {progress: X, radarr_url: "..."}}
-        "missing": [],
+        "queued": {},  # {tmdb_id: {radarr_url: "..."}} - in library but not downloaded
         "base_url": base_url
     }
 
@@ -88,7 +88,7 @@ def get_library_with_status():
         elif movie.get("hasFile"):
             result["downloaded"][tmdb_id] = {"radarr_url": radarr_url}
         else:
-            result["missing"].append(tmdb_id)
+            result["queued"][tmdb_id] = {"radarr_url": radarr_url}
 
     return result
 

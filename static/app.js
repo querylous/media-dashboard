@@ -2,10 +2,13 @@
 let currentTab = 'movies';
 let radarrDownloaded = {};  // {tmdb_id: {radarr_url}}
 let radarrDownloading = {};  // {tmdb_id: {progress, radarr_url}}
+let radarrQueued = {};  // {tmdb_id: {radarr_url}} - in library but not downloaded
 let sonarrDownloadedTvdb = {};  // {tvdb_id: {sonarr_url}}
 let sonarrDownloadedTmdb = {};  // {tmdb_id: {sonarr_url}}
 let sonarrDownloadingTvdb = {};  // {tvdb_id: {progress, sonarr_url, has_episodes}}
 let sonarrDownloadingTmdb = {};  // {tmdb_id: {progress, sonarr_url, has_episodes}}
+let sonarrQueuedTvdb = {};  // {tvdb_id: {sonarr_url}}
+let sonarrQueuedTmdb = {};  // {tmdb_id: {sonarr_url}}
 let radarrProfiles = [];
 let sonarrProfiles = [];
 let currentItem = null;
@@ -164,6 +167,9 @@ function getItemStatus(item) {
             const data = radarrDownloading[tmdbId];
             return { status: 'downloading', progress: data.progress, arrUrl: data.radarr_url };
         }
+        if (tmdbId in radarrQueued) {
+            return { status: 'queued', progress: 0, arrUrl: radarrQueued[tmdbId].radarr_url };
+        }
     } else {
         // Check downloaded
         if (tvdbId in sonarrDownloadedTvdb) {
@@ -180,6 +186,13 @@ function getItemStatus(item) {
         if (tmdbId in sonarrDownloadingTmdb) {
             const data = sonarrDownloadingTmdb[tmdbId];
             return { status: 'downloading', progress: data.progress, arrUrl: data.sonarr_url, hasEpisodes: data.has_episodes };
+        }
+        // Check queued
+        if (tvdbId in sonarrQueuedTvdb) {
+            return { status: 'queued', progress: 0, arrUrl: sonarrQueuedTvdb[tvdbId].sonarr_url };
+        }
+        if (tmdbId in sonarrQueuedTmdb) {
+            return { status: 'queued', progress: 0, arrUrl: sonarrQueuedTmdb[tmdbId].sonarr_url };
         }
     }
     return { status: 'not_added', progress: 0, arrUrl: null };
@@ -233,6 +246,9 @@ function createCard(item) {
                 </div>`;
         }
         statusBadge = `<a href="${arrUrl}" target="_blank" class="absolute top-2 right-2 bg-yellow-600 hover:bg-yellow-700 text-xs px-2 py-1 rounded flex items-center gap-1" title="Open in ${arrName}"><span class="font-bold">${arrIcon}</span> ${progress}%</a>`;
+    } else if (status === 'queued') {
+        actionButton = `<span class="mt-2 w-full py-1 bg-gray-600 rounded text-sm block text-center">Queued</span>`;
+        statusBadge = `<a href="${arrUrl}" target="_blank" class="absolute top-2 right-2 bg-blue-600 hover:bg-blue-700 text-xs px-2 py-1 rounded flex items-center gap-1" title="Open in ${arrName}"><span class="font-bold">${arrIcon}</span> Queued</a>`;
     } else {
         actionButton = `<button class="add-btn mt-2 w-full py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm" data-item='${JSON.stringify(item).replace(/'/g, "&apos;")}'>Add</button>`;
     }
@@ -335,6 +351,7 @@ async function loadRadarrLibrary() {
         if (data.success) {
             radarrDownloaded = data.data.downloaded;  // {tmdb_id: {radarr_url}}
             radarrDownloading = data.data.downloading;  // {tmdb_id: {progress, radarr_url}}
+            radarrQueued = data.data.queued || {};  // {tmdb_id: {radarr_url}}
         }
     } catch (e) {
         console.error('Failed to load Radarr library:', e);
@@ -350,6 +367,8 @@ async function loadSonarrLibrary() {
             sonarrDownloadedTmdb = data.data.downloaded.tmdb;  // {tmdb_id: {sonarr_url}}
             sonarrDownloadingTvdb = data.data.downloading.tvdb;  // {tvdb_id: {progress, sonarr_url, has_episodes}}
             sonarrDownloadingTmdb = data.data.downloading.tmdb;  // {tmdb_id: {progress, sonarr_url, has_episodes}}
+            sonarrQueuedTvdb = data.data.queued?.tvdb || {};  // {tvdb_id: {sonarr_url}}
+            sonarrQueuedTmdb = data.data.queued?.tmdb || {};  // {tmdb_id: {sonarr_url}}
         }
     } catch (e) {
         console.error('Failed to load Sonarr library:', e);

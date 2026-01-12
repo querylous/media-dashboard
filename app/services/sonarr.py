@@ -72,7 +72,7 @@ def get_library_with_status():
     result = {
         "downloaded": {"tvdb": {}, "tmdb": {}},
         "downloading": {"tvdb": {}, "tmdb": {}},
-        "missing": {"tvdb": [], "tmdb": []},
+        "queued": {"tvdb": {}, "tmdb": {}},  # in library but no episodes downloaded
         "base_url": base_url
     }
 
@@ -99,9 +99,9 @@ def get_library_with_status():
                 result["downloaded"]["tmdb"][tmdb_id] = {"sonarr_url": sonarr_url}
         else:
             if tvdb_id:
-                result["missing"]["tvdb"].append(tvdb_id)
+                result["queued"]["tvdb"][tvdb_id] = {"sonarr_url": sonarr_url}
             if tmdb_id:
-                result["missing"]["tmdb"].append(tmdb_id)
+                result["queued"]["tmdb"][tmdb_id] = {"sonarr_url": sonarr_url}
 
     return result
 
