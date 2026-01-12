@@ -52,6 +52,7 @@ def get_library_with_status():
     """Get library with download status."""
     series_list = _make_request("/series")
     queue = _make_request("/queue")
+    base_url = _get_base_url()
 
     # Get series IDs and progress currently downloading
     downloading_progress = {}
@@ -69,9 +70,10 @@ def get_library_with_status():
                 downloading_progress[series_id] = progress
 
     result = {
-        "downloaded": {"tvdb": [], "tmdb": []},
+        "downloaded": {"tvdb": {}, "tmdb": {}},
         "downloading": {"tvdb": {}, "tmdb": {}},
-        "missing": {"tvdb": [], "tmdb": []}
+        "missing": {"tvdb": [], "tmdb": []},
+        "base_url": base_url
     }
 
     for series in series_list:
@@ -80,18 +82,21 @@ def get_library_with_status():
         series_id = series.get("id")
         stats = series.get("statistics", {})
         episode_file_count = stats.get("episodeFileCount", 0)
+        sonarr_url = f"{base_url}/series/{series.get('titleSlug')}"
 
         if series_id in downloading_progress:
             progress = downloading_progress[series_id]
+            # If also has some episodes downloaded, can still watch in Plex
+            has_episodes = episode_file_count > 0
             if tvdb_id:
-                result["downloading"]["tvdb"][tvdb_id] = progress
+                result["downloading"]["tvdb"][tvdb_id] = {"progress": progress, "sonarr_url": sonarr_url, "has_episodes": has_episodes}
             if tmdb_id:
-                result["downloading"]["tmdb"][tmdb_id] = progress
+                result["downloading"]["tmdb"][tmdb_id] = {"progress": progress, "sonarr_url": sonarr_url, "has_episodes": has_episodes}
         elif episode_file_count > 0:
             if tvdb_id:
-                result["downloaded"]["tvdb"].append(tvdb_id)
+                result["downloaded"]["tvdb"][tvdb_id] = {"sonarr_url": sonarr_url}
             if tmdb_id:
-                result["downloaded"]["tmdb"].append(tmdb_id)
+                result["downloaded"]["tmdb"][tmdb_id] = {"sonarr_url": sonarr_url}
         else:
             if tvdb_id:
                 result["missing"]["tvdb"].append(tvdb_id)

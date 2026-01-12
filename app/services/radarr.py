@@ -46,6 +46,7 @@ def get_library_with_status():
     """Get library with download status."""
     movies = _make_request("/movie")
     queue = _make_request("/queue")
+    base_url = _get_base_url()
 
     # Get TMDB IDs and progress of movies currently downloading
     downloading = {}
@@ -62,23 +63,30 @@ def get_library_with_status():
                         progress = round((1 - sizeleft / size) * 100)
                     else:
                         progress = 0
-                    downloading[tmdb_id] = progress
+                    downloading[tmdb_id] = {"progress": progress, "radarr_id": m.get("id")}
                     break
 
     result = {
-        "downloaded": [],
-        "downloading": {},
-        "missing": []
+        "downloaded": {},  # {tmdb_id: {radarr_url: "..."}}
+        "downloading": {},  # {tmdb_id: {progress: X, radarr_url: "..."}}
+        "missing": [],
+        "base_url": base_url
     }
 
     for movie in movies:
         tmdb_id = movie.get("tmdbId")
+        radarr_id = movie.get("id")
         if not tmdb_id:
             continue
+        radarr_url = f"{base_url}/movie/{radarr_id}"
+
         if tmdb_id in downloading:
-            result["downloading"][tmdb_id] = downloading[tmdb_id]
+            result["downloading"][tmdb_id] = {
+                "progress": downloading[tmdb_id]["progress"],
+                "radarr_url": radarr_url
+            }
         elif movie.get("hasFile"):
-            result["downloaded"].append(tmdb_id)
+            result["downloaded"][tmdb_id] = {"radarr_url": radarr_url}
         else:
             result["missing"].append(tmdb_id)
 
