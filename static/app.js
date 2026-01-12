@@ -171,6 +171,9 @@ function createCard(item) {
     const status = getItemStatus(item);
     const posterUrl = item.poster || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="300" viewBox="0 0 200 300"><rect fill="%23374151" width="200" height="300"/><text fill="%239CA3AF" font-family="sans-serif" font-size="14" x="50%" y="50%" text-anchor="middle">No Poster</text></svg>';
     const plexSearchUrl = `${plexUrl}#!/search?query=${encodeURIComponent(item.title)}`;
+    const tmdbUrl = currentTab === 'movies'
+        ? `https://www.themoviedb.org/movie/${item.tmdb_id}`
+        : `https://www.themoviedb.org/tv/${item.tmdb_id}`;
 
     let actionButton;
     let statusBadge = '';
@@ -186,11 +189,11 @@ function createCard(item) {
     }
 
     div.innerHTML = `
-        <div class="relative">
+        <a href="${tmdbUrl}" target="_blank" class="block relative cursor-pointer">
             <img src="${posterUrl}" alt="${item.title}" class="w-full aspect-[2/3] object-cover">
             ${statusBadge}
             ${item.rating ? `<span class="absolute bottom-2 left-2 bg-black/70 text-xs px-2 py-1 rounded">${item.rating}</span>` : ''}
-        </div>
+        </a>
         <div class="p-3">
             <h3 class="font-medium text-sm truncate" title="${item.title}">${item.title}</h3>
             <p class="text-gray-400 text-xs">${item.year || 'N/A'}</p>
