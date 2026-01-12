@@ -153,29 +153,32 @@ function renderContent(items) {
 
 // Get item status and progress
 function getItemStatus(item) {
+    const tmdbId = String(item.tmdb_id);
+    const tvdbId = String(item.tvdb_id);
+
     if (currentTab === 'movies') {
-        if (item.tmdb_id in radarrDownloaded) {
-            return { status: 'downloaded', progress: 100, arrUrl: radarrDownloaded[item.tmdb_id].radarr_url };
+        if (tmdbId in radarrDownloaded) {
+            return { status: 'downloaded', progress: 100, arrUrl: radarrDownloaded[tmdbId].radarr_url };
         }
-        if (item.tmdb_id in radarrDownloading) {
-            const data = radarrDownloading[item.tmdb_id];
+        if (tmdbId in radarrDownloading) {
+            const data = radarrDownloading[tmdbId];
             return { status: 'downloading', progress: data.progress, arrUrl: data.radarr_url };
         }
     } else {
         // Check downloaded
-        if (item.tvdb_id in sonarrDownloadedTvdb) {
-            return { status: 'downloaded', progress: 100, arrUrl: sonarrDownloadedTvdb[item.tvdb_id].sonarr_url };
+        if (tvdbId in sonarrDownloadedTvdb) {
+            return { status: 'downloaded', progress: 100, arrUrl: sonarrDownloadedTvdb[tvdbId].sonarr_url };
         }
-        if (item.tmdb_id in sonarrDownloadedTmdb) {
-            return { status: 'downloaded', progress: 100, arrUrl: sonarrDownloadedTmdb[item.tmdb_id].sonarr_url };
+        if (tmdbId in sonarrDownloadedTmdb) {
+            return { status: 'downloaded', progress: 100, arrUrl: sonarrDownloadedTmdb[tmdbId].sonarr_url };
         }
         // Check downloading
-        if (item.tvdb_id in sonarrDownloadingTvdb) {
-            const data = sonarrDownloadingTvdb[item.tvdb_id];
+        if (tvdbId in sonarrDownloadingTvdb) {
+            const data = sonarrDownloadingTvdb[tvdbId];
             return { status: 'downloading', progress: data.progress, arrUrl: data.sonarr_url, hasEpisodes: data.has_episodes };
         }
-        if (item.tmdb_id in sonarrDownloadingTmdb) {
-            const data = sonarrDownloadingTmdb[item.tmdb_id];
+        if (tmdbId in sonarrDownloadingTmdb) {
+            const data = sonarrDownloadingTmdb[tmdbId];
             return { status: 'downloading', progress: data.progress, arrUrl: data.sonarr_url, hasEpisodes: data.has_episodes };
         }
     }
@@ -199,16 +202,10 @@ function createCard(item) {
 
     let actionButton;
     let statusBadge = '';
-    let arrLink = '';
-
-    // Show Radarr/Sonarr link if in library
-    if (arrUrl) {
-        arrLink = `<a href="${arrUrl}" target="_blank" class="absolute top-2 left-2 bg-purple-600 hover:bg-purple-700 text-xs w-6 h-6 flex items-center justify-center rounded font-bold" title="Open in ${arrName}">${arrIcon}</a>`;
-    }
 
     if (status === 'downloaded') {
         actionButton = `<a href="${plexSearchUrl}" target="_blank" class="mt-2 w-full py-1 bg-orange-500 hover:bg-orange-600 rounded text-sm block text-center">Watch in Plex</a>`;
-        statusBadge = '<span class="absolute top-2 right-2 bg-green-600 text-xs px-2 py-1 rounded">Downloaded</span>';
+        statusBadge = `<a href="${arrUrl}" target="_blank" class="absolute top-2 right-2 bg-green-600 hover:bg-green-700 text-xs px-2 py-1 rounded flex items-center gap-1" title="Open in ${arrName}"><span class="font-bold">${arrIcon}</span> Downloaded</a>`;
     } else if (status === 'downloading') {
         // For TV shows with some episodes, show both progress and Plex button
         if (hasEpisodes) {
@@ -235,7 +232,7 @@ function createCard(item) {
                     </div>
                 </div>`;
         }
-        statusBadge = `<span class="absolute top-2 right-2 bg-yellow-600 text-xs px-2 py-1 rounded">${progress}%</span>`;
+        statusBadge = `<a href="${arrUrl}" target="_blank" class="absolute top-2 right-2 bg-yellow-600 hover:bg-yellow-700 text-xs px-2 py-1 rounded flex items-center gap-1" title="Open in ${arrName}"><span class="font-bold">${arrIcon}</span> ${progress}%</a>`;
     } else {
         actionButton = `<button class="add-btn mt-2 w-full py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm" data-item='${JSON.stringify(item).replace(/'/g, "&apos;")}'>Add</button>`;
     }
@@ -243,7 +240,6 @@ function createCard(item) {
     div.innerHTML = `
         <a href="${tmdbUrl}" target="_blank" class="block relative cursor-pointer">
             <img src="${posterUrl}" alt="${item.title}" class="w-full aspect-[2/3] object-cover">
-            ${arrLink}
             ${statusBadge}
             ${item.rating ? `<span class="absolute bottom-2 left-2 bg-black/70 text-xs px-2 py-1 rounded">${item.rating}</span>` : ''}
         </a>
